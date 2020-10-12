@@ -98,7 +98,7 @@ if(! $installedProducts) {
 $installedProducts | ForEach-Object {
     Try
     {
-        Write-Host "Attempting to uninstall '$($_.Name)' v'$($_.Version)'"
+        Write-Host "Attempting to uninstall '$($_.Name)' 'v$($_.Version)' with GUID '$($_.IdentifyingNumber)'"
         
         # Attempt to uninstall
         $_.Uninstall()
