@@ -1,26 +1,27 @@
 <#
 .SYNOPSIS
-  Script is designed to find all currently installed versions of Sophos Endoint Protection and uninstall.
+  Script is designed to test if Sophos Endoint Protection is installed and proceed with uninstall.
 
 .DESCRIPTION
-  Uninstall all installed versions of Sophos Endpoint Protection.
+  Uninstall Sophos Endpoint Protection.
 
 .INPUTS
-  productName [optional] 
+  none 
 
 .OUTPUTS
   Console output and Exit Code
 
 .NOTES
   Author:         Lucas Halbert <contactme@lhalbert.xyz>
-  Version:        2020.10.12
+  Version:        2020.10.13
   Date Written:   10/12/2020
-  Date Modified:  10/12/2020
+  Date Modified:  10/13/2020
 
-  Revisions:      2020.10.12 - Inital draft
+  Revisions:      2020.10.13 - Add try/catch/finally and run uninstallclie.exe provided with SOPHOS
+                  2020.10.12 - Inital draft
 
 .EXAMPLE
-  .\uninstall-product.ps1 
+  .\uninstall-SEP.ps1 
 
 .LICENSE
   License:        BSD 3-Clause License
@@ -52,72 +53,62 @@
   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #>
 
-# Gather paramters
-param(
-    [Parameter(Mandatory=$false)][string]$productName
-)
-
-
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------#
-# Initialize system.timeoutException exception object
-$timeoutException = new-object system.timeoutException
-
-
 #----------------------------------------------------------[Declarations]----------------------------------------------------------#
 # Declare Product Name
-if($productName -eq $null -or $productName -eq "")
-{
-    $producName = 'sophos'
-}
+$productName = 'sophos'
 
-# Declare a counter for uninstall Errors
-$uninstallErrors = 0
+# Declare the default result
+$result = $FALSE
 
 
 #-----------------------------------------------------------[Functions]------------------------------------------------------------#
-# Functio to enumerate installed products by name
-function Get-Installed-Products($name) {
-    return get-wmiobject Win32_Product | Where-object {$_.Name -like "$name*"}
+# Function to test if product is installed
+function Is-Installed($name) {
+    Write-host "Checking if $name is installed"
+    if (Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object {$_.DisplayName -like "$name*"}) {
+        return $TRUE
+    } else {
+        return $FALSE
+    }
 }
-
-
 
 #-----------------------------------------------------------[Execution]------------------------------------------------------------#
 
 
-# Get all installed products
-$installedProducts = Get-Installed-Products($productName)
-if(! $installedProducts) {
-    Write-Host "The product '$productName' does not appear to be installed on this system"
-    Exit 0
-}
+if(Is-Installed($productName)) {
+  Try {
+      Write-Host "Attempting to uninstall '$productName'"
 
-# Loop through all installed products and try to uninstall
-$installedProducts | ForEach-Object {
-    Try
-    {
-        Write-Host "Attempting to uninstall '$($_.Name)' 'v$($_.Version)' with GUID '$($_.IdentifyingNumber)'"
-        
-        # Attempt to uninstall
-        $_.Uninstall()
-    }
-    Catch
-    {
-        Write-Host "ERROR: Caught an unexpected exception while uninstalling '$productName': $_.Exception.Message"
-        $uninstallErrors++
-    }
-}
+      $filename = 'uninstallcli.exe'
+      $directory = 'C:\Program Files\Sophos\Sophos Endpoint Agent'
+      $path = "$directory\$filename"
+      
+      # Perform the uninstall
+      $proc = Start-Process -FilePath $path -Wait -PassThru
+      $proc.waitForExit()
 
-If ($uninstallErrors -eq 0)
-{        
-    Write-Host "OK: All '$productName' products have been successfully removed."
-    $installedProducts | Select Name, Version, IdentifyingNumber | ft
+      if($proc.ExitCode -ne 0) {
+          throw "Errorlevel $($proc.ExitCode)"
+      } else {
+          $result = $TRUE
+      }
+  } Catch {
+      Write-Host "ERROR: Caught an unexpected exception while uninstalling '$productName': $_"
+  }
+  Finally {
+      If($result) {
+          Write-Host "OK: The product '$productName' has been successfully uninstalled from this system"
+          Exit 0
+      } Else {
+          Write-Host "ERROR: The product'$ProductName' was NOT successfully uninstalled from this system."
+          Exit 1
+      }
+  }
+} Else {
+    Write-Host "OK: The product '$productName' does not appear to be installed on this system"
     Exit 0
-}
-Else
-{   
-    Write-Host "ERROR: Not all '$ProductName' products were successfully removed."
-    Exit 1
 }
