@@ -94,7 +94,8 @@ if(Is-Installed($productName)) {
       
       if($WhatIf) {
           # Perform the uninstall
-          Write-Host "Whatif: Start-Process -FilePath $path -Wait -PassThru"
+          Write-Host "Whatif: Performing uninstall of $productName"
+          $result = $TRUE
       } else {
           # Perform the uninstall
           $proc = Start-Process -FilePath $path -Wait -PassThru
