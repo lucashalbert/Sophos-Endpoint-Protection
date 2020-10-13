@@ -94,19 +94,14 @@ if(Is-Installed($productName)) {
       
       if($WhatIf) {
           # Perform the uninstall
-          Write-Host "Whatif: Performing uninstall of $productName"
+          Write-Host "Whatif: Performing the operation 'Uninstall' of product '$productName'"
           $result = $TRUE
       } else {
           # Perform the uninstall
           $proc = Start-Process -FilePath $path -Wait -PassThru
           $proc.waitForExit()
-
-          if($proc.ExitCode -ne 0) {
-              throw "Errorlevel $($proc.ExitCode)"
-          } else {
-              $result = $TRUE
-          }
       }
+      $result = $TRUE
   } Catch {
       Write-Host "ERROR: Caught an unexpected exception while uninstalling '$productName': $_"
   }
