@@ -56,6 +56,11 @@
 
 #>
 
+# Gather paramters
+param(
+    [switch]$WhatIf
+)
+
 #---------------------------------------------------------[Initialisations]--------------------------------------------------------#
 #----------------------------------------------------------[Declarations]----------------------------------------------------------#
 # Declare Product Name
@@ -87,14 +92,19 @@ if(Is-Installed($productName)) {
       $directory = 'C:\Program Files\Sophos\Sophos Endpoint Agent'
       $path = "$directory\$filename"
       
-      # Perform the uninstall
-      $proc = Start-Process -FilePath $path -Wait -PassThru
-      $proc.waitForExit()
-
-      if($proc.ExitCode -ne 0) {
-          throw "Errorlevel $($proc.ExitCode)"
+      if($WhatIf) {
+          # Perform the uninstall
+          Write-Host "Whatif: Start-Process -FilePath $path -Wait -PassThru"
       } else {
-          $result = $TRUE
+          # Perform the uninstall
+          $proc = Start-Process -FilePath $path -Wait -PassThru
+          $proc.waitForExit()
+
+          if($proc.ExitCode -ne 0) {
+              throw "Errorlevel $($proc.ExitCode)"
+          } else {
+              $result = $TRUE
+          }
       }
   } Catch {
       Write-Host "ERROR: Caught an unexpected exception while uninstalling '$productName': $_"
